@@ -6,12 +6,15 @@
     "moduleResolution": "Node",
     "outDir": "dist",
     "baseUrl": "src/",
-    "sourceMap": true,
+    "sourceMap": false,
     "strict": true,
+    "noImplicitAny": true,
+    "removeComments": true,
     "experimentalDecorators": true,
     "noImplicitReturns": true,
     "allowSyntheticDefaultImports": true,
     "allowUnreachableCode": false,
+    "strictNullChecks": false,
     "typeRoots": ["./node_modules/@types", "./@types", "./node_modules/@types/screeps-arena/dist"]
   },
   "exclude": ["node_modules"]

@@ -1,19 +1,17 @@
-import { ATTACK, MOVE } from "game/constants";
-import { Creep, StructureSpawn } from "game/prototypes";
-import { getObjectsByPrototype } from "game/utils";
+import { Creep } from 'game/prototypes'
+import { creepManager } from './creepManager'
+import { spawnManager } from './spawnManager'
 
-let attacker: Creep | undefined;
-export function loop(): void {
-  if (!attacker) {
-    const mySpawn = getObjectsByPrototype(StructureSpawn).find(i => i.my);
-    if (mySpawn) {
-      attacker = mySpawn.spawnCreep([MOVE, ATTACK]).object;
+declare module 'game/prototypes' {
+
+    interface Creep {
+        role: string
     }
-  } else {
-    const enemySpawn = getObjectsByPrototype(StructureSpawn).find(i => !i.my);
-    if (enemySpawn) {
-      attacker.moveTo(enemySpawn);
-      attacker.attack(enemySpawn);
-    }
-  }
+}
+
+export function loop() {
+
+    spawnManager()
+
+    creepManager()
 }
