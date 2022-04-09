@@ -12,7 +12,7 @@ export function spawnManager() {
 
         if (!spawn.my) continue
 
-        const spawnResult = spawn.spawnCreep([ATTACK, MOVE])
+        const spawnResult = spawn.spawnCreep([ATTACK, MOVE, MOVE])
         if (spawnResult.error) continue
 
         const spawningCreep = spawnResult.object
