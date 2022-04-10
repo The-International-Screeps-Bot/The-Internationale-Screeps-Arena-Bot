@@ -40,7 +40,7 @@ export function generateAttackerCM() {
 
         const positions = findPositionsInsideRect(enemyCreep.x - (range - 1), enemyCreep.y - (range - 1), enemyCreep.x + (range - 1), enemyCreep.y + (range - 1))
 
-        for (const pos of positions) global.attackerCM.set(pos.x, pos.y, 255)
+        for (const pos of positions) global.attackerCM.set(pos.x, pos.y, 244)
 
         rect({ x: enemyCreep.x - range * 0.5, y: enemyCreep.y - range * 0.5 }, range, range, { fill: colors.yellow, opacity: 0.2 })
     }
@@ -53,7 +53,7 @@ export function generateAttackerCM() {
 
         const positions = findPositionsInsideRect(enemyCreep.x - 2, enemyCreep.y - 2, enemyCreep.x + 2, enemyCreep.y + 2)
 
-        for (const pos of positions) global.attackerCM.set(pos.x, pos.y, 255)
+        for (const pos of positions) global.attackerCM.set(pos.x, pos.y, 244)
 
         rect({ x: enemyCreep.x - range * 0.5, y: enemyCreep.y - range * 0.5 }, range, range, { fill: colors.yellow, opacity: 0.2 })
     }

@@ -2,7 +2,7 @@ import { getDirection, getObjectsByPrototype, getRange } from "game"
 import { ATTACK, BodyPartConstant, HEAL, HEAL_POWER, MOVE, OK, RANGED_ATTACK, RANGED_ATTACK_POWER } from "game/constants"
 import { CostMatrix, searchPath } from "game/path-finder"
 import { Creep } from "game/prototypes"
-import { circle, poly, rect } from "game/visual"
+import { circle, poly, rect, text } from "game/visual"
 import { colors } from "./constants"
 import { findPositionsInsideRect, generateAttackerCM } from "./generalFuncs"
 
@@ -36,15 +36,20 @@ Creep.prototype.moveAsAttacker = function(targetPos) {
 
     const creep = this,
 
-    cm = generateAttackerCM(),
-
     attackEnemyCreeps = getObjectsByPrototype(Creep).filter(creep => !creep.my && (creep.getActiveParts(ATTACK)))
 
-    let range = 1
+    let lowestRange = 3
 
     for (const enemyCreep of attackEnemyCreeps) {
 
-        range = enemyCreep.getActiveParts(MOVE) ? 3 : 2
+        const rangeBetween = getRange(creep, enemyCreep)
+
+        if (rangeBetween <= 3) {
+
+            if (rangeBetween < lowestRange) lowestRange = 3
+
+            if (rangeBetween <= 2 && enemyCreep.getActiveParts(MOVE) && rangeBetween < lowestRange) lowestRange = 3 
+        }
     }
 
     const rangedAttackEnemyCreeps = getObjectsByPrototype(Creep).filter(creep => !creep.my && (creep.getActiveParts(RANGED_ATTACK)))
@@ -53,20 +58,24 @@ Creep.prototype.moveAsAttacker = function(targetPos) {
 
         if (creep.findPartsAmount(RANGED_ATTACK) * RANGED_ATTACK_POWER + creep.findPartsAmount(HEAL) * HEAL_POWER > enemyCreep.findPartsAmount(RANGED_ATTACK) * RANGED_ATTACK_POWER + enemyCreep.findPartsAmount(HEAL) * HEAL_POWER) continue
 
-        range = 3
+        const rangeBetween = getRange(creep, enemyCreep)
+
+        if (rangeBetween <= 3 && rangeBetween < lowestRange) lowestRange = rangeBetween
     }
 
-    const flee = getRange(creep, targetPos) < range ? true : false
-    if (flee) range = 20
+    const flee = getRange(creep, targetPos) < lowestRange ? true : false
+    if (flee) lowestRange = 20
 
-    const path = searchPath(creep, {pos: targetPos, range }, {
-        costMatrix: cm,
+    text(lowestRange.toString(), creep, { font: 0.3 })
+
+    const path = searchPath(creep, { pos: targetPos, range: lowestRange }, {
+        costMatrix: generateAttackerCM(),
         flee
     }).path
     
     if (!path.length) return false
 
-    /* poly(path, { opacity: 0.4, stroke: colors.purple }) */
+    poly(path, { opacity: 0.4, stroke: colors.purple })
 
-    return creep.moveTo(path[0]) == OK
+    return creep.moveTo(path[0], { costMatrix: generateAttackerCM() }) == OK
 }
