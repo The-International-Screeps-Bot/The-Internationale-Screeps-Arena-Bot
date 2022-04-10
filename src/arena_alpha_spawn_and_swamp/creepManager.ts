@@ -13,19 +13,11 @@ export function creepManager() {
 
     for (const role of roles) {
 
-        global.creepCount[role] = 0
-    }
+        const creeps = global.creepsOfRole[role]
 
-    const allCreeps = getObjectsByPrototype(Creep)
+        for (const creep of creeps) {
 
-    for (const creepName in allCreeps) {
-
-        const creep = allCreeps[creepName]
-
-        if (!creep.my) continue
-
-        roleHandlers[creep.role](creep)
-
-        global.creepCount[creep.role]++
+            roleHandlers[creep.role](creep)
+        }
     }
 }

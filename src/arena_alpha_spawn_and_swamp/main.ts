@@ -1,9 +1,10 @@
 import { getCpuTime } from 'game'
 import { BodyPartConstant } from 'game/constants'
 import { CostMatrix, PathStep } from 'game/path-finder'
-import { Creep, StructureSpawn } from 'game/prototypes'
+import { Creep, RoomPosition, StructureSpawn } from 'game/prototypes'
 import { roles } from './constants'
 import { creepManager } from './creepManager'
+import { creepOrganizer } from './creepOrganizer'
 import { spawnManager } from './spawnManager'
 
 declare module 'game/prototypes' {
@@ -16,6 +17,10 @@ declare module 'game/prototypes' {
         findPartsAmount(type: BodyPartConstant): number
 
         moveAsAttacker(targetPos: RoomPosition): boolean
+
+        healAsAttacker(enemyAttackersExist?: boolean): void
+
+        attackAsAttacker(): void
     }
 }
 
@@ -23,27 +28,32 @@ declare global {
     module NodeJS {
         interface Global {
 
-            creepCount: {[key: string]: number}
+            creepsOfRole: {[key: string]: Creep[]}
 
             attackerCM: CostMatrix
         
             enemyAttackers: Creep[]
 
             enemySpawns: StructureSpawn[]
+
+            squadCenter: RoomPosition
         }
     }   
 }
 
 export function loop() {
 
-    global.creepCount = {}
+    global.creepsOfRole = {}
     delete global.attackerCM
     delete global.enemyAttackers
     delete global.enemySpawns
+    delete global.squadCenter
+
+    creepOrganizer()
 
     creepManager()
 
     spawnManager()
 
-    console.log(getCpuTime())
+    console.log('CPU: ' + getCpuTime())
 }

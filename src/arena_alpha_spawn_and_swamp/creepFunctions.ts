@@ -66,7 +66,7 @@ Creep.prototype.moveAsAttacker = function(targetPos) {
     const flee = getRange(creep, targetPos) < lowestRange ? true : false
     if (flee) lowestRange = 20
 
-    text(lowestRange.toString(), creep, { font: 0.3 })
+    text(lowestRange.toString(), creep, { font: 0.4 })
 
     const path = searchPath(creep, { pos: targetPos, range: lowestRange }, {
         costMatrix: generateAttackerCM(),
@@ -78,4 +78,28 @@ Creep.prototype.moveAsAttacker = function(targetPos) {
     poly(path, { opacity: 0.4, stroke: colors.purple })
 
     return creep.moveTo(path[0], { costMatrix: generateAttackerCM() }) == OK
+}
+
+Creep.prototype.healAsAttacker = function(enemyAttackersExist) {
+
+    const creep = this,
+
+    nearbyAttackers = global.creepsOfRole.rangedAttacker.filter(rangedAttacker => getRange(creep, rangedAttacker) == 1)
+
+    for (const rangedAttacker of nearbyAttackers) {
+
+        if (rangedAttacker.hits == rangedAttacker.hitsMax) continue
+
+        creep.heal(rangedAttacker)
+        return
+    }
+
+    if (enemyAttackersExist) creep.heal(creep)
+}
+
+Creep.prototype.attackAsAttacker = function() {
+
+    const creep = this
+
+    
 }

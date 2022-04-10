@@ -2,17 +2,18 @@ import { findClosestByRange, getObjectsByPrototype, getRange } from "game"
 import { ATTACK, ERR_NOT_IN_RANGE, HEAL, RANGED_ATTACK, WORK } from "game/constants"
 import { Creep, StructureSpawn } from "game/prototypes"
 import './creepFunctions'
-import { findEnemyAttackers } from "./generalFuncs"
+import { findEnemyAttackers, findSquadCenter } from "./generalFuncs"
 
 export function rangedAttacker(creep: Creep) {
 
+    
     const enemyAttackers = findEnemyAttackers()
+
+    creep.healAsAttacker(enemyAttackers.length > 0)
 
     if (enemyAttackers.length) {
 
-        creep.heal(creep)
-
-        const enemyAttacker = findClosestByRange(creep, enemyAttackers)
+        const enemyAttacker = findClosestByRange(findSquadCenter(), enemyAttackers)
 
         creep.moveAsAttacker(enemyAttacker)
 
