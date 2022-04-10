@@ -1,15 +1,22 @@
 import { getObjectsByPrototype } from "game"
 import { Creep, StructureSpawn } from "game/prototypes"
-import { spawnAttacker } from "./spawnAttacker"
+import { roles } from "./constants"
+import { hauler } from "./hauler"
+import { rangedAttacker } from "./rangedAttacker"
 
 const roleHandlers: {[key: string]: Function} = {
-    spawnAttacker
+    hauler,
+    rangedAttacker
 }
 
 export function creepManager() {
 
-    const enemySpawn = getObjectsByPrototype(StructureSpawn).find(spawn => !spawn.my),
-    allCreeps = getObjectsByPrototype(Creep)
+    for (const role of roles) {
+
+        global.creepCount[role] = 0
+    }
+
+    const allCreeps = getObjectsByPrototype(Creep)
 
     for (const creepName in allCreeps) {
 
@@ -18,5 +25,7 @@ export function creepManager() {
         if (!creep.my) continue
 
         roleHandlers[creep.role](creep)
+
+        global.creepCount[creep.role]++
     }
 }

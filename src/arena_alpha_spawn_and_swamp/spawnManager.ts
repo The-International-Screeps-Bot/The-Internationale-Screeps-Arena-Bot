@@ -1,5 +1,5 @@
 import { getObjectsByPrototype } from "game"
-import { ATTACK, MOVE } from "game/constants"
+import { ATTACK, CARRY, HEAL, MOVE, RANGED_ATTACK } from "game/constants"
 import { StructureSpawn } from "game/prototypes"
 
 export function spawnManager() {
@@ -12,11 +12,22 @@ export function spawnManager() {
 
         if (!spawn.my) continue
 
-        const spawnResult = spawn.spawnCreep([ATTACK, MOVE, MOVE])
+        if (global.creepCount.hauler < 3) {
+
+            const spawnResult = spawn.spawnCreep([CARRY, MOVE, CARRY, MOVE])
+            if (spawnResult.error) continue
+    
+            const spawningCreep = spawnResult.object
+    
+            spawningCreep.role = 'hauler'
+            continue
+        }
+
+        const spawnResult = spawn.spawnCreep([RANGED_ATTACK, MOVE, MOVE, MOVE, RANGED_ATTACK, MOVE, MOVE, MOVE, HEAL, MOVE, MOVE])
         if (spawnResult.error) continue
 
         const spawningCreep = spawnResult.object
 
-        spawningCreep.role = 'spawnAttacker'
+        spawningCreep.role = 'rangedAttacker'
     }
 }
