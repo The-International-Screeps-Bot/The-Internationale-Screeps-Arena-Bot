@@ -1,10 +1,10 @@
-import { getDirection, getObjectsByPrototype, getRange } from "game"
+import { findClosestByRange, getDirection, getObjectById, getObjectsByPrototype, getRange } from "game"
 import { ATTACK, BodyPartConstant, HEAL, HEAL_POWER, MOVE, OK, RANGED_ATTACK, RANGED_ATTACK_POWER } from "game/constants"
-import { CostMatrix, searchPath } from "game/path-finder"
+import { CostMatrix, PathStep, searchPath } from "game/path-finder"
 import { Creep } from "game/prototypes"
-import { circle, poly, rect, text } from "game/visual"
+import { Visual } from "game/visual"
 import { colors } from "./constants"
-import { findPositionsInsideRect, generateAttackerCM } from "./generalFuncs"
+import { findEnemyAttackers, findEnemySpawns, findPositionsInsideRect, findSquadCenter, generateAttackerCM } from "./generalFuncs"
 
 Creep.prototype.getActiveParts = function(type) {
 
@@ -32,9 +32,15 @@ Creep.prototype.findPartsAmount = function(type) {
     return partsAmount
 }
 
-Creep.prototype.moveAsAttacker = function(targetPos) {
+Creep.prototype.attackEnemyAttackers = function() {
 
-    const creep = this,
+    const creep = this
+
+    const enemyAttackers = findEnemyAttackers()
+
+    if (!enemyAttackers.length) return false
+
+    const enemyAttacker = findClosestByRange(creep, enemyAttackers),
 
     attackEnemyCreeps = getObjectsByPrototype(Creep).filter(creep => !creep.my && (creep.getActiveParts(ATTACK)))
 
@@ -60,46 +66,144 @@ Creep.prototype.moveAsAttacker = function(targetPos) {
 
         const rangeBetween = getRange(creep, enemyCreep)
 
-        if (rangeBetween <= 3 && rangeBetween > highestRange) highestRange = rangeBetween
+        if (rangeBetween <= 4 && rangeBetween > highestRange) highestRange = rangeBetween
     }
+    highestRange = 1
 
-    const flee = getRange(creep, targetPos) < highestRange ? true : false
-    if (flee) highestRange = 20
+    const cm = generateAttackerCM().clone(),
 
-    text(highestRange.toString(), creep, { font: 0.4 })
+    creeps = getObjectsByPrototype(Creep).filter(anyCreep => anyCreep.id != creep.id)
+    for (const creep of creeps) cm.set(creep.x, creep.y, 255)
 
-    const path = searchPath(creep, { pos: targetPos, range: highestRange }, {
-        costMatrix: generateAttackerCM(),
-        flee
-    }).path
+    const squadLeadersInRange = global.creepsOfRole.rangedAttacker.filter(rangedAttacker => getRange(creep, rangedAttacker) <= 4).length,
+    enemyAttackersInRange = attackEnemyCreeps.filter(enemyAttacker => getRange(creep, enemyAttacker) <= 3).length + rangedAttackEnemyCreeps.filter(enemyAttacker => getRange(creep, enemyAttacker) <= 5).length,
+
+    flee = cm.get(creep.x, creep.y) == 255 || enemyAttackersInRange > squadLeadersInRange
+
+    new Visual().text(cm.get(creep.x, creep.y).toString(), creep, { font: 0.4 })
+
+    let path: PathStep[]
+
+    if (flee) {
+
+        highestRange = 20
+
+        path = searchPath(creep, { pos: enemyAttacker, range: highestRange }, {
+            costMatrix: generateAttackerCM(),
+            flee
+        }).path
+
+        new Visual().line(creep, enemyAttacker, { opacity: 0.2, color: colors.lightBlue })
+    }
+    else {
+
+        path = searchPath(creep, { pos: enemyAttacker, range: highestRange }, {
+            costMatrix: generateAttackerCM()
+        }).path
+
+        new Visual().line(creep, enemyAttacker, { opacity: 0.2, color: colors.lightBlue })
+    }
     
     if (!path.length) return false
 
-    poly(path, { opacity: 0.4, stroke: colors.purple })
+    new Visual().poly(path, { opacity: 0.2, stroke: colors.purple })
 
-    return creep.moveTo(path[0], { costMatrix: generateAttackerCM() }) == OK
-}
+    creep.moveToPos(path[0], flee)
 
-Creep.prototype.healAsAttacker = function(enemyAttackersExist) {
+    if (getRange(creep, enemyAttacker) == 1) {
 
-    const creep = this,
-
-    nearbyAttackers = global.creepsOfRole.rangedAttacker.filter(rangedAttacker => getRange(creep, rangedAttacker) == 1)
-
-    for (const rangedAttacker of nearbyAttackers) {
-
-        if (rangedAttacker.hits == rangedAttacker.hitsMax) continue
-
-        creep.heal(rangedAttacker)
-        return
+        creep.rangedMassAttack()
+        return true
     }
 
-    if (enemyAttackersExist) creep.heal(creep)
+    if (getRange(creep, enemyAttacker) > 3) {
+
+        creep.rangedMassAttack()
+        return true
+    }
+
+    creep.rangedAttack(enemyAttacker)
+    return true
 }
 
-Creep.prototype.attackAsAttacker = function() {
+Creep.prototype.attackEnemySpawns = function() {
 
     const creep = this
 
+    // See if there is an enemy spawn, informing false if there isn't
+
+    const enemySpawn = findClosestByRange(creep, findEnemySpawns())
+    if (!enemySpawn) return false
+
+    // Otherwise if in range 1 to the spawn
+
+    if (getRange(creep, enemySpawn) == 1) {
+
+        creep.rangedMassAttack()
+        return true
+    }
+
+    creep.moveToPos(creep.findPathTo(enemySpawn)[0])
+
+    if (getRange(creep, enemySpawn) > 3) {
+
+        creep.rangedMassAttack()
+
+        return true
+    }
     
+    creep.rangedAttack(enemySpawn)
+
+    return true
+}
+
+Creep.prototype.advancedHeal = function() {
+
+    const creep = this
+
+    // If the creep is below max hits
+
+    if (creep.hits < creep.hitsMax) {
+
+        // Heal the creep
+
+        creep.heal(creep)
+        return
+    }
+    
+    const nearbyMyCreeps = getObjectsByPrototype(Creep).filter(nearbyCreep => nearbyCreep.my && getRange(creep, nearbyCreep) <= 3)
+
+    for (const nearbyCreep of nearbyMyCreeps) {
+
+        // If the nearbyCreep is not below max hits
+
+        if (nearbyCreep.hits == nearbyCreep.hitsMax) continue
+
+        // If range 1 heal didn't work, try range 3 heal. Stop
+
+        if (creep.heal(nearbyCreep) != OK) creep.rangedHeal(nearbyCreep)
+        return
+    }
+
+    // Otherwise pre-heal itself
+
+    creep.heal(creep)
+}
+
+Creep.prototype.moveToPos = function(targetPos, flee) {
+
+    const creep = this
+
+    //
+
+    if (flee) {
+
+        // Have the supporter move to the targetPos and the leader move to the supporter
+        new Visual().text('F', creep, { font: 0.5 })
+        creep.move(getDirection(targetPos.x - creep.x, targetPos.y - creep.y))
+
+        return
+    }
+    
+    creep.move(getDirection(targetPos.x - creep.x, targetPos.y - creep.y))
 }

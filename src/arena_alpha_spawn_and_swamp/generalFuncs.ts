@@ -1,8 +1,8 @@
 import { getObjectsByPrototype, getRange, getTerrainAt } from "game"
 import { ATTACK, HEAL, MOVE, RANGED_ATTACK, TERRAIN_WALL, WORK } from "game/constants"
 import { CostMatrix } from "game/path-finder"
-import { Creep, RoomPosition, StructureSpawn } from "game/prototypes"
-import { rect } from "game/visual"
+import { Creep, OwnedStructure, RoomPosition, Structure, StructureContainer, StructureSpawn } from "game/prototypes"
+import { Visual } from "game/visual"
 import { colors } from "./constants"
 
 /**
@@ -30,46 +30,50 @@ export function generateAttackerCM() {
     
     global.attackerCM = new CostMatrix()
 
+    for (const structure of getObjectsByPrototype(OwnedStructure)) {
+
+        global.attackerCM.set(structure.x, structure.y, 255)
+    }
+
+    //
+
     const attackEnemyCreeps = getObjectsByPrototype(Creep).filter(creep => !creep.my && (creep.getActiveParts(ATTACK)))
 
     let range
 
     for (const enemyCreep of attackEnemyCreeps) {
 
-        range = enemyCreep.getActiveParts(MOVE) ? 3 : 2
+        range = enemyCreep.getActiveParts(MOVE) ? 2 : 1
 
-        const positions = findPositionsInsideRect(enemyCreep.x - (range - 1), enemyCreep.y - (range - 1), enemyCreep.x + (range - 1), enemyCreep.y + (range - 1))
+        const positions = findPositionsInsideRect(enemyCreep.x - range, enemyCreep.y - range, enemyCreep.x + range, enemyCreep.y + range)
 
         for (const pos of positions) {
 
             if (getTerrainAt(pos) == TERRAIN_WALL) continue
 
-            global.attackerCM.set(pos.x, pos.y, 244)
+            global.attackerCM.set(pos.x, pos.y, 255)
         }
 
-        rect({ x: enemyCreep.x - 1 -range * 0.5, y: enemyCreep.y - 1 - range * 0.5 }, range * 2, range * 2, { fill: colors.yellow, opacity: 0.2 })
+        new Visual().rect({ x: enemyCreep.x - 0.5 - range, y: enemyCreep.y - 0.5 - range }, range * 2  + 1, range * 2  + 1, { fill: colors.yellow, opacity: 0.2 })
     }
 
     const rangedAttackEnemyCreeps = getObjectsByPrototype(Creep).filter(creep => !creep.my && (creep.getActiveParts(RANGED_ATTACK)))
 
+    range = 2
+
     for (const enemyCreep of rangedAttackEnemyCreeps) {
 
-        range = 3
-
-        const positions = findPositionsInsideRect(enemyCreep.x - 2, enemyCreep.y - 2, enemyCreep.x + 2, enemyCreep.y + 2)
+        const positions = findPositionsInsideRect(enemyCreep.x - range, enemyCreep.y - range, enemyCreep.x + range, enemyCreep.y + range)
 
         for (const pos of positions) {
 
             if (getTerrainAt(pos) == TERRAIN_WALL) continue
 
-            global.attackerCM.set(pos.x, pos.y, 244)
+            global.attackerCM.set(pos.x, pos.y, 255)
         }
 
-        rect({ x: enemyCreep.x - range * 0.5, y: enemyCreep.y - range * 0.5 }, range * 2 , range * 2, { fill: colors.yellow, opacity: 0.2 })
+        new Visual().rect({ x: enemyCreep.x - 0.5 - range, y: enemyCreep.y - 0.5 - range }, range * 2 + 1 , range * 2 + 1, { fill: colors.yellow, opacity: 0.1 })
     }
-
-    const creeps = getObjectsByPrototype(Creep)
-    for (const creep of creeps) global.attackerCM.set(creep.x, creep.y, 255)
 
     return global.attackerCM
 }
@@ -95,17 +99,15 @@ export function findSquadCenter() {
     let x = 0,
     y = 0
     
-    for (const creep of global.creepsOfRole.rangedAttacker) {
+    for (const creep of global.creepsOfRole.squadLeader) {
 
         x += creep.x
         y += creep.y
     }
-
-    const rangedAttackerCount = global.creepsOfRole.rangedAttacker.length
     
     return global.squadCenter = {
-        x: Math.floor(x / rangedAttackerCount),
-        y: Math.floor(y / rangedAttackerCount)
+        x: Math.floor(x / global.creepsOfRole.squadLeader.length),
+        y: Math.floor(y / global.creepsOfRole.squadLeader.length)
     }
 }
 

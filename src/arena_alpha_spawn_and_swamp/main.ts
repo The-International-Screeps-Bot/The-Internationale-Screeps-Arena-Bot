@@ -1,8 +1,7 @@
 import { getCpuTime } from 'game'
 import { BodyPartConstant } from 'game/constants'
 import { CostMatrix, PathStep } from 'game/path-finder'
-import { Creep, RoomPosition, StructureSpawn } from 'game/prototypes'
-import { roles } from './constants'
+import { Creep, Id, RoomPosition, StructureSpawn } from 'game/prototypes'
 import { creepManager } from './creepManager'
 import { creepOrganizer } from './creepOrganizer'
 import { spawnManager } from './spawnManager'
@@ -10,6 +9,10 @@ import { spawnManager } from './spawnManager'
 declare module 'game/prototypes' {
 
     interface Creep {
+
+        /**
+         * 
+         */
         role: string
 
         getActiveParts(type: BodyPartConstant): boolean
@@ -21,6 +24,14 @@ declare module 'game/prototypes' {
         healAsAttacker(enemyAttackersExist?: boolean): void
 
         attackAsAttacker(): void
+
+        attackEnemyAttackers(): boolean
+
+        attackEnemySpawns(): boolean
+
+        advancedHeal(): void
+
+        moveToPos(targetPos: RoomPosition, flee?: boolean): void
     }
 }
 
@@ -37,9 +48,13 @@ declare global {
             enemySpawns: StructureSpawn[]
 
             squadCenter: RoomPosition
+
+            supporterOffers: Id<Creep>[]
         }
     }   
 }
+
+global.supporterOffers = []
 
 export function loop() {
 
@@ -55,5 +70,5 @@ export function loop() {
 
     spawnManager()
 
-    console.log('CPU: ' + getCpuTime())
+    console.log('CPU: ' + (getCpuTime() / 1000000).toFixed(2) + ' / ' + 50)
 }

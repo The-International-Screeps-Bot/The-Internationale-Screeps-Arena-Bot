@@ -1,5 +1,3 @@
-import { getObjectsByPrototype } from "game"
-import { Creep, StructureSpawn } from "game/prototypes"
 import { roles } from "./constants"
 import { hauler } from "./hauler"
 import { rangedAttacker } from "./rangedAttacker"

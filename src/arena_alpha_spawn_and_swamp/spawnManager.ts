@@ -12,9 +12,9 @@ export function spawnManager() {
 
         if (!spawn.my) continue
 
-        if (global.creepsOfRole.hauler.length < 3) {
+        if (global.creepsOfRole.hauler.length < 4) {
 
-            const spawnResult = spawn.spawnCreep([CARRY, MOVE, CARRY, MOVE])
+            const spawnResult = spawn.spawnCreep([CARRY, MOVE])
             if (spawnResult.error) continue
     
             const creep = spawnResult.object
@@ -22,15 +22,16 @@ export function spawnManager() {
             creep.role = 'hauler'
             continue
         }
-
+        
         if (global.creepsOfRole.rangedAttacker.length < Infinity) {
 
-            const spawnResult = spawn.spawnCreep([RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE, RANGED_ATTACK, MOVE, HEAL, MOVE, MOVE])
+            const spawnResult = spawn.spawnCreep([RANGED_ATTACK, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE])
             if (spawnResult.error) continue
 
             const creep = spawnResult.object
-
+            
             creep.role = 'rangedAttacker'
+            continue
         }
     }
 }
