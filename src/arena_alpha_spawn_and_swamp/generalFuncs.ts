@@ -99,15 +99,15 @@ export function findSquadCenter() {
     let x = 0,
     y = 0
     
-    for (const creep of global.creepsOfRole.squadLeader) {
+    for (const creep of global.creepsOfRole.rangedAttacker) {
 
         x += creep.x
         y += creep.y
     }
     
     return global.squadCenter = {
-        x: Math.floor(x / global.creepsOfRole.squadLeader.length),
-        y: Math.floor(y / global.creepsOfRole.squadLeader.length)
+        x: Math.floor(x / global.creepsOfRole.rangedAttacker.length),
+        y: Math.floor(y / global.creepsOfRole.rangedAttacker.length)
     }
 }
 
@@ -122,4 +122,14 @@ export function findAvgBetweenPosotions(x1: number, y1: number, x2: number, y2: 
         x: Math.floor((x1 + x2) / 2),
         y: Math.floor((y1 + y2) / 2),
     }
+}
+
+export function myPowerCM() {
+
+    
+}
+
+export function enemyPowerCM() {
+
+    
 }

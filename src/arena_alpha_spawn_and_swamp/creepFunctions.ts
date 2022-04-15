@@ -1,7 +1,7 @@
-import { findClosestByRange, getDirection, getObjectById, getObjectsByPrototype, getRange } from "game"
-import { ATTACK, BodyPartConstant, HEAL, HEAL_POWER, MOVE, OK, RANGED_ATTACK, RANGED_ATTACK_POWER } from "game/constants"
+import { findClosestByRange, getDirection, getObjectById, getObjectsByPrototype, getRange, getTerrainAt } from "game"
+import { ATTACK, BodyPartConstant, HEAL, HEAL_POWER, MOVE, OK, RANGED_ATTACK, RANGED_ATTACK_POWER, TERRAIN_WALL } from "game/constants"
 import { CostMatrix, PathStep, searchPath } from "game/path-finder"
-import { Creep } from "game/prototypes"
+import { Creep, OwnedStructure, StructureSpawn } from "game/prototypes"
 import { Visual } from "game/visual"
 import { colors } from "./constants"
 import { findEnemyAttackers, findEnemySpawns, findPositionsInsideRect, findSquadCenter, generateAttackerCM } from "./generalFuncs"
@@ -36,12 +36,12 @@ Creep.prototype.attackEnemyAttackers = function() {
 
     const creep = this
 
-    const enemyAttackers = findEnemyAttackers()
+    const enemyAttackers = (findEnemyAttackers() as (Creep | StructureSpawn)[]).concat(findEnemySpawns())
 
     if (!enemyAttackers.length) return false
 
-    const enemyAttacker = findClosestByRange(creep, enemyAttackers),
-
+    const enemyAttacker = findClosestByRange(creep, enemyAttackers)
+/* 
     attackEnemyCreeps = getObjectsByPrototype(Creep).filter(creep => !creep.my && (creep.getActiveParts(ATTACK)))
 
     let highestRange = 1
@@ -73,14 +73,16 @@ Creep.prototype.attackEnemyAttackers = function() {
     const cm = generateAttackerCM().clone(),
 
     creeps = getObjectsByPrototype(Creep).filter(anyCreep => anyCreep.id != creep.id)
-    for (const creep of creeps) cm.set(creep.x, creep.y, 255)
+    for (const creepAlt of creeps) cm.set(creepAlt.x, creepAlt.y, 255)
+ */
 
-    const squadLeadersInRange = global.creepsOfRole.rangedAttacker.filter(rangedAttacker => getRange(creep, rangedAttacker) <= 4).length,
-    enemyAttackersInRange = attackEnemyCreeps.filter(enemyAttacker => getRange(creep, enemyAttacker) <= 3).length + rangedAttackEnemyCreeps.filter(enemyAttacker => getRange(creep, enemyAttacker) <= 5).length,
+    creep.travel({
+        goal: { pos: enemyAttacker, range: 0 },
+        rangedAttacker: true,
+        swampCost: 0,
+    })
 
-    flee = cm.get(creep.x, creep.y) == 255 || enemyAttackersInRange > squadLeadersInRange
-
-    new Visual().text(cm.get(creep.x, creep.y).toString(), creep, { font: 0.4 })
+    /* new Visual().text(cm.get(creep.x, creep.y).toString(), creep, { font: 0.4 })
 
     let path: PathStep[]
 
@@ -89,8 +91,9 @@ Creep.prototype.attackEnemyAttackers = function() {
         highestRange = 20
 
         path = searchPath(creep, { pos: enemyAttacker, range: highestRange }, {
-            costMatrix: generateAttackerCM(),
-            flee
+            costMatrix: cm,
+            flee,
+            swampCost: 0,
         }).path
 
         new Visual().line(creep, enemyAttacker, { opacity: 0.2, color: colors.lightBlue })
@@ -98,7 +101,8 @@ Creep.prototype.attackEnemyAttackers = function() {
     else {
 
         path = searchPath(creep, { pos: enemyAttacker, range: highestRange }, {
-            costMatrix: generateAttackerCM()
+            costMatrix: cm,
+            swampCost: 0
         }).path
 
         new Visual().line(creep, enemyAttacker, { opacity: 0.2, color: colors.lightBlue })
@@ -108,7 +112,7 @@ Creep.prototype.attackEnemyAttackers = function() {
 
     new Visual().poly(path, { opacity: 0.2, stroke: colors.purple })
 
-    creep.moveToPos(path[0], flee)
+    creep.moveToPos(path[0], flee) */
 
     if (getRange(creep, enemyAttacker) == 1) {
 
@@ -143,7 +147,11 @@ Creep.prototype.attackEnemySpawns = function() {
         return true
     }
 
-    creep.moveToPos(creep.findPathTo(enemySpawn)[0])
+    creep.travel({
+        goal: { pos: enemySpawn, range: 1 },
+        rangedAttacker: true,
+        swampCost: 0,
+    })
 
     if (getRange(creep, enemySpawn) > 3) {
 
@@ -171,7 +179,7 @@ Creep.prototype.advancedHeal = function() {
         return
     }
     
-    const nearbyMyCreeps = getObjectsByPrototype(Creep).filter(nearbyCreep => nearbyCreep.my && getRange(creep, nearbyCreep) <= 3)
+    const nearbyMyCreeps = global.creepsOfRole.rangedAttacker.filter(nearbyCreep => nearbyCreep.my && getRange(creep, nearbyCreep) <= 3)
 
     for (const nearbyCreep of nearbyMyCreeps) {
 
@@ -190,20 +198,100 @@ Creep.prototype.advancedHeal = function() {
     creep.heal(creep)
 }
 
-Creep.prototype.moveToPos = function(targetPos, flee) {
+Creep.prototype.travel = function(opts) {
 
-    const creep = this
+    const creep = this,
 
-    //
-
-    if (flee) {
-
-        // Have the supporter move to the targetPos and the leader move to the supporter
-        new Visual().text('F', creep, { font: 0.5 })
-        creep.move(getDirection(targetPos.x - creep.x, targetPos.y - creep.y))
-
-        return
-    }
+    costMatrix = new CostMatrix()
     
-    creep.move(getDirection(targetPos.x - creep.x, targetPos.y - creep.y))
+    if (opts.rangedAttacker) {
+
+        for (const structure of getObjectsByPrototype(OwnedStructure)) {
+
+            costMatrix.set(structure.x, structure.y, 255)
+        }
+    
+        //
+    
+        const attackEnemyCreeps = getObjectsByPrototype(Creep).filter(creep => !creep.my && (creep.getActiveParts(ATTACK)))
+    
+        let range = 1,
+        highestRange = 1
+    
+        for (const enemyCreep of attackEnemyCreeps) {
+
+            range = 1
+
+            const rangeBetween = getRange(creep, enemyCreep)
+
+            if (rangeBetween <= 3) {
+
+                if (!enemyCreep.getActiveParts(MOVE)) range = 1
+
+                else range = 2
+            }
+
+            if (range > highestRange) highestRange = range + 1
+    
+            const positions = findPositionsInsideRect(enemyCreep.x - range, enemyCreep.y - range, enemyCreep.x + range, enemyCreep.y + range)
+    
+            for (const pos of positions) {
+    
+                if (getTerrainAt(pos) == TERRAIN_WALL) continue
+    
+                costMatrix.set(pos.x, pos.y, 254)
+            }
+    
+            /* new Visual().rect({ x: enemyCreep.x - 0.5 - range, y: enemyCreep.y - 0.5 - range }, range * 2  + 1, range * 2  + 1, { fill: colors.yellow, opacity: 0.2 }) */
+        }
+    
+        const rangedAttackEnemyCreeps = getObjectsByPrototype(Creep).filter(creep => !creep.my && (creep.getActiveParts(RANGED_ATTACK)))
+    
+        for (const enemyCreep of rangedAttackEnemyCreeps) {
+
+            if (creep.findPartsAmount(RANGED_ATTACK) * RANGED_ATTACK_POWER + creep.findPartsAmount(HEAL) * HEAL_POWER > enemyCreep.findPartsAmount(RANGED_ATTACK) * RANGED_ATTACK_POWER + enemyCreep.findPartsAmount(HEAL) * HEAL_POWER) continue
+
+            range = 2
+
+            if (getRange(creep, enemyCreep) <= 3 && range > highestRange) highestRange = range + 1
+    
+            const positions = findPositionsInsideRect(enemyCreep.x - range, enemyCreep.y - range, enemyCreep.x + range, enemyCreep.y + range)
+    
+            for (const pos of positions) {
+    
+                if (getTerrainAt(pos) == TERRAIN_WALL) continue
+    
+                costMatrix.set(pos.x, pos.y, 254)
+            }
+    
+            /* new Visual().rect({ x: enemyCreep.x - 0.5 - range, y: enemyCreep.y - 0.5 - range }, range * 2 + 1 , range * 2 + 1, { fill: colors.yellow, opacity: 0.1 }) */
+        }
+
+        const allCreeps = getObjectsByPrototype(Creep).filter(anyCreep => anyCreep.id != creep.id)
+        for (const creepAlt of allCreeps) costMatrix.set(creepAlt.x, creepAlt.y, 255)
+
+        opts.goal.range = highestRange
+
+        const squadLeadersInRange = global.creepsOfRole.rangedAttacker.filter(rangedAttacker => getRange(creep, rangedAttacker) <= 4).length,
+        enemyAttackersInRange = attackEnemyCreeps.filter(enemyAttacker => getRange(creep, enemyAttacker) <= 2).length + rangedAttackEnemyCreeps.filter(enemyAttacker => getRange(creep, enemyAttacker) <= 4).length
+    
+        opts.flee = costMatrix.get(creep.x, creep.y) >= 254 || enemyAttackersInRange > squadLeadersInRange
+        if (opts.flee) opts.goal.range = 20
+    }
+
+    new Visual().line(creep, opts.goal.pos, { opacity: 0.2, color: colors.lightBlue })
+
+    const path = searchPath(creep, opts.goal, {
+        costMatrix,
+        flee: opts.flee,
+        plainCost: opts.plainCost,
+        swampCost: opts.swampCost
+    }).path
+
+    if (opts.flee) new Visual().text('F', creep, { font: 0.5 })
+    new Visual().poly(path, { opacity: 0.2, stroke: colors.purple })
+
+    if (!path.length) return
+
+    creep.move(getDirection(path[0].x - creep.x, path[0].y - creep.y))
 }

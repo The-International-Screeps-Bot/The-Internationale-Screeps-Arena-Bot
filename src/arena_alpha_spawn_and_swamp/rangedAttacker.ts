@@ -7,5 +7,5 @@ export function rangedAttacker(creep: Creep) {
     
     if (creep.attackEnemyAttackers()) return
 
-    if (creep.attackEnemySpawns()) return
+    /* if (creep.attackEnemySpawns()) return */
 }

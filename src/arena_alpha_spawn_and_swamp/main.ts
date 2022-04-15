@@ -8,6 +8,15 @@ import { spawnManager } from './spawnManager'
 
 declare module 'game/prototypes' {
 
+    interface TravelOpts {
+        goal: { pos: RoomPosition, range: number }
+        rangedAttacker?: boolean
+        flee?: boolean
+        avoidEnemyRanges?: boolean
+        plainCost?: number
+        swampCost?: number
+    }
+
     interface Creep {
 
         /**
@@ -31,7 +40,7 @@ declare module 'game/prototypes' {
 
         advancedHeal(): void
 
-        moveToPos(targetPos: RoomPosition, flee?: boolean): void
+        travel(opts: TravelOpts): void
     }
 }
 

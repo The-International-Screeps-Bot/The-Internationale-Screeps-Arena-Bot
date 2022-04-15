@@ -25,7 +25,7 @@ export function spawnManager() {
         
         if (global.creepsOfRole.rangedAttacker.length < Infinity) {
 
-            const spawnResult = spawn.spawnCreep([RANGED_ATTACK, HEAL, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE])
+            const spawnResult = spawn.spawnCreep([RANGED_ATTACK, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, HEAL])
             if (spawnResult.error) continue
 
             const creep = spawnResult.object
